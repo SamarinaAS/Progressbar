@@ -3,16 +3,31 @@
 #include <iostream>
 #include <thread>
 #include <chrono>
+#include <atomic>
  
 #define MINIMAL_PROGRESS_FUNCTIONALITY_INTERVAL     3000000
 #define STOP_DOWNLOAD_AFTER_THIS_MANY_BYTES         150000000
 
 bool flag = false; 
+std::atomic<unsigned int> percent_glob { 0 };
 struct myprogress {
   curl_off_t lastruntime; 
   CURL *curl;
 };
  
+void print_percent(unsigned long dlnow, unsigned long dltotal){
+  //  if (flag == false){
+  //    std::cout << "pid xferinfo: "<<std::this_thread::get_id() <<std::endl;
+  //    std::cout<<"persent: "<<std::endl;
+  //    flag = true;
+  //}
+  if ((unsigned long) dltotal!=0){
+  percent_glob = (unsigned int)((double)dlnow/dltotal*100);
+  //std::cout<< "\r"<<percent_glob/*<<"\n"*/<<std::flush;
+  //fprintf(stderr, "\r %lu",
+  //      div);
+  }
+}
 
 static int xferinfo(void *p, curl_off_t dltotal, curl_off_t dlnow, curl_off_t ultotal, curl_off_t ulnow){  
   struct myprogress *myp = (struct myprogress *)p;
@@ -20,11 +35,6 @@ static int xferinfo(void *p, curl_off_t dltotal, curl_off_t dlnow, curl_off_t ul
   curl_off_t curtime = 0;
  
   curl_easy_getinfo(curl, CURLINFO_TOTAL_TIME_T, &curtime);
-  if (flag == false){
-      std::cout << "pid xferinfo: "<<std::this_thread::get_id() <<std::endl;
-      std::cout<<"persent: "<<std::endl;
-      flag = true;
-  }
 
   if((curtime - myp->lastruntime) >= MINIMAL_PROGRESS_FUNCTIONALITY_INTERVAL) {
     myp->lastruntime = curtime;
@@ -37,12 +47,13 @@ static int xferinfo(void *p, curl_off_t dltotal, curl_off_t dlnow, curl_off_t ul
   //        (unsigned long)ulnow, (unsigned long)ultotal,
   //        (unsigned long)dlnow, (unsigned long)dltotal);
   //std::this_thread::sleep_for(std::chrono::nanoseconds(700000000));
-  if ((unsigned long) dltotal!=0){
-  unsigned long div = (unsigned long)((double)dlnow/dltotal*100);
-  std::cout<< "\r"<<div/*<<"\n"*/<<std::flush;
+  print_percent(dlnow, dltotal);
+  //if ((unsigned long) dltotal!=0){
+  //unsigned long div = (unsigned long)((double)dlnow/dltotal*100);
+  //std::cout<< "\r"<<div/*<<"\n"*/<<std::flush;
   //fprintf(stderr, "\r %lu",
   //      div);
-        }
+  //      }
   //std::cout << '\r' << dlnow/dltotal << std::flush;
  
   if(dlnow > STOP_DOWNLOAD_AFTER_THIS_MANY_BYTES)
@@ -91,8 +102,17 @@ void myfunction (){
  
 int main(void)
 {
-  std::cout << "pid main: "<< std::this_thread::get_id() <<std::endl;
+  //std::cout << "pid main: "<< std::this_thread::get_id() <<std::endl;
   std::thread tr1 (myfunction);
+  std::cout<<"percent: "<<std::endl;
+  //while (percent_glob !=100){
+  //    std::cout<< "\r"<<percent_glob/*<<"\n"*/<<std::flush;
+  //}
+  unsigned int temp = percent_glob;
+  do{
+    temp = percent_glob;
+    std::cout<< "\r"<<temp/*<<"\n"*/<<std::flush;
+  }while(temp !=100);
   tr1.join();
   return 0;
 }
