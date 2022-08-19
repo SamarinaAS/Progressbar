@@ -4,6 +4,9 @@
 #include <thread>
 #include <chrono>
 #include <atomic>
+#include <wx/wx.h>
+#include <wx/progdlg.h>
+
  
 #define MINIMAL_PROGRESS_FUNCTIONALITY_INTERVAL     3000000
 #define STOP_DOWNLOAD_AFTER_THIS_MANY_BYTES         150000000
@@ -95,24 +98,73 @@ void myfunction (){
     fclose(pagefile);
     }
     curl_easy_cleanup(curl);
-    std::cout << "pid myfunction: "<< std::this_thread::get_id() <<std::endl;
+    //std::cout << "pid myfunction: "<< std::this_thread::get_id() <<std::endl;
   }
   //return (int)res;
 }
  
-int main(void)
-{
-  //std::cout << "pid main: "<< std::this_thread::get_id() <<std::endl;
-  std::thread tr1 (myfunction);
-  std::cout<<"percent: "<<std::endl;
+//int main(void)
+//{
+//  //std::cout << "pid main: "<< std::this_thread::get_id() <<std::endl;
+//  std::thread tr1 (myfunction);
+//  std::cout<<"percent: "<<std::endl;
   //while (percent_glob !=100){
   //    std::cout<< "\r"<<percent_glob/*<<"\n"*/<<std::flush;
   //}
-  unsigned int temp = percent_glob;
-  do{
+//  unsigned int temp = percent_glob;
+//  do{
+//    temp = percent_glob;
+//    std::cout<< "\r"<<temp/*<<"\n"*/<<std::flush;
+//  }while(temp !=100);
+//  tr1.join();
+//  return 0;
+//}
+
+
+class myApp : public wxApp {
+ public:
+   bool OnInit(void);
+   int OnExit(void);
+};
+
+IMPLEMENT_APP(myApp)
+
+bool myApp :: OnInit(){
+   
+   int i, max = 100;
+   //std::cout << "pid main: "<< std::this_thread::get_id() <<std::endl;
+   std::thread tr1 (myfunction);
+   //std::cout<<"percent: "<<std::endl;
+   //while (percent_glob !=100){
+   //    std::cout<< "\r"<<percent_glob/*<<"\n"*/<<std::flush;
+   //}
+   
+   wxFrame* frame = new wxFrame(NULL, wxID_ANY, wxT("Loader"));
+   this->SetTopWindow(frame);
+   frame->Show(true);
+   
+   wxProgressDialog* dialog = new wxProgressDialog(wxT("Wait: downloading"), wxT("percent: 0"), max, frame, wxPD_AUTO_HIDE | wxPD_APP_MODAL);
+   //dialog->AddMainButtonId(wxID_HIGHEST + 1);
+   //for(int i = 0; i < max; i++){
+   //   wxMilliSleep(500); //here are computations
+   //   if(i%23) dialog->Update(i);
+   //}
+   unsigned int temp = percent_glob;
+   do{
     temp = percent_glob;
-    std::cout<< "\r"<<temp/*<<"\n"*/<<std::flush;
-  }while(temp !=100);
-  tr1.join();
-  return 0;
+    std::string temp_string = std::to_string(percent_glob) + " %";
+    wxString temp_wxstring (temp_string);
+    //std::cout<< "\r"<<temp/*<<"\n"*/<<std::flush;
+    dialog->Update(temp, temp_wxstring);
+   }while(temp !=100);
+   dialog->Update(max);
+   tr1.join();
+   delete dialog;
+
+   return true;
+}
+
+int myApp :: OnExit(){
+  
+   return 0;
 }
