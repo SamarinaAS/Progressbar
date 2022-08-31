@@ -156,7 +156,7 @@ bool myApp::OnInit() {
     this->SetTopWindow(panel);
     panel->Show(true);
     
-    text=new wxTextCtrl(panel,-1,"https://media2.giphy.com/media/er7RmM5FjvHHajU8R2/giphy-downsized-large.gif",wxPoint(20,25),wxSize(350,20));
+    text=new wxTextCtrl(panel,-1,"https://media2.giphy.com/media/er7RmM5FjvHHajU8R2/giphy-downsized-large.gif",wxPoint(20,25),wxSize(350,30));
 
     
     //wxButton *download = new wxButton(frame, ID_Download, wxT("Загрузить"), wxPoint(20, 25),
