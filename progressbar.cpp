@@ -9,6 +9,7 @@
 
 #define MINIMAL_PROGRESS_FUNCTIONALITY_INTERVAL 3000000
 #define STOP_DOWNLOAD_AFTER_THIS_MANY_BYTES 150000000
+const char* str = "https://99px.ru/sstorage/86/2017/11/image_862611170051343932802.gif";
 
 bool flag = false;
 std::atomic<unsigned int> percent_glob{0};
@@ -64,7 +65,7 @@ static int xferinfo(void *p, curl_off_t dltotal, curl_off_t dlnow, curl_off_t ul
 }
 
 void myfunction() {
-    static const char *pagefilename = "page.out";
+    static const char *pagefilename = "file.out";
     FILE *pagefile;
     CURL *curl;
     CURLcode res = CURLE_OK;
@@ -76,9 +77,9 @@ void myfunction() {
         prog.curl = curl;
 
         // curl_easy_setopt(curl, CURLOPT_URL, "https://example.com/");
-        curl_easy_setopt(
-            curl, CURLOPT_URL,
-            "https://media2.giphy.com/media/er7RmM5FjvHHajU8R2/giphy-downsized-large.gif");
+        //curl_easy_setopt(curl, CURLOPT_URL,
+        //    "https://media2.giphy.com/media/er7RmM5FjvHHajU8R2/giphy-downsized-large.gif");
+        curl_easy_setopt(curl, CURLOPT_URL, str);
         curl_easy_setopt(curl, CURLOPT_XFERINFOFUNCTION, xferinfo);
         curl_easy_setopt(curl, CURLOPT_XFERINFODATA, &prog);
         curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0L);
@@ -121,33 +122,73 @@ class myApp : public wxApp {
    public:
     bool OnInit(void);
     int OnExit(void);
+    void OnQuit(wxCommandEvent & event);
+    void Download(wxCommandEvent & WXUNUSED(event));
+    wxPanel* panel;
+    wxTextCtrl* text;
+    //wxFrame *frame;
+    wxProgressDialog *dialog;
+    enum {ID_Download=wxID_HIGHEST + 1, ID_Cancel};
 };
 
 IMPLEMENT_APP(myApp)
 
-bool myApp ::OnInit() {
-    int i, max = 100;
+bool myApp::OnInit() {
+    
     // std::cout << "pid main: "<< std::this_thread::get_id() <<std::endl;
-    std::thread tr1(myfunction);
+    
     // std::cout<<"percent: "<<std::endl;
     // while (percent_glob !=100){
     //    std::cout<< "\r"<<percent_glob/*<<"\n"*/<<std::flush;
     //}
 
-    wxFrame *frame = new wxFrame(NULL, wxID_ANY, wxT("Loader"));
+    wxFrame* frame = new wxFrame(NULL, wxID_ANY, wxT("Loader"));
+    //frame=new wxFrame(0,-1,"wxTextEntryDialog",wxPoint(10,10),wxSize(320,200),wxCAPTION | wxSYSTEM_MENU);
+    panel=new wxPanel(frame,-1);
     this->SetTopWindow(frame);
     frame->Show(true);
+    this->SetTopWindow(panel);
+    panel->Show(true);
+    text=new wxTextCtrl(panel,-1,"https://media2.giphy.com/media/er7RmM5FjvHHajU8R2/giphy-downsized-large.gif",wxPoint(20,100),wxSize(250,20));
 
-    wxProgressDialog *dialog = new wxProgressDialog(wxT("Wait: downloading"), wxT("percent: 0"),
-                                                    max, frame, wxPD_AUTO_HIDE | wxPD_APP_MODAL);
-
-    wxButton *cancel = new wxButton(dialog, wxID_HIGHEST + 1, wxT("Отменить"), wxPoint(120, 25),
-                                    wxDefaultSize, 0, wxDefaultValidator, wxT("cancel"));
+    
+    //wxButton *download = new wxButton(frame, ID_Download, wxT("Загрузить"), wxPoint(20, 25),
+    //                               wxSize(10,2), 0, wxDefaultValidator, wxT("download"));
+    wxButton *download = new wxButton(panel, ID_Download, wxT("Загрузить"), wxPoint(20, 25));
+    Connect(ID_Download, wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(myApp::Download));
+    download->SetFocus();
+    //Centre();
+    //wxButton *download = new wxButton(frame, wxID_HIGHEST + 2, wxT("Загрузить"), wxPoint(120, 25),
+    //                                wxSize(10,2), 0, wxDefaultValidator, wxT("download"));
+                                    
     // dialog->AddMainButtonId(wxID_HIGHEST + 1);
     // for(int i = 0; i < max; i++){
     //   wxMilliSleep(500); //here are computations
     //   if(i%23) dialog->Update(i);
     //}
+    
+
+    return true;
+}
+
+void myApp::Download(wxCommandEvent & WXUNUSED(event)){
+    std::string temp_str = std::string(text->GetValue());
+    str = temp_str.c_str();
+    //const char* str = std::string(text->GetValue()).c_str();
+    //strcpy(str, str_const);
+    int i, max = 100;
+    dialog = new wxProgressDialog(wxT("Wait: downloading"), wxT("percent: 0"),
+                                                    max, panel, wxPD_AUTO_HIDE | wxPD_APP_MODAL);
+    wxButton *cancel = new wxButton(dialog, ID_Cancel, wxT("Отменить"), wxPoint(120, 25),
+                                    wxDefaultSize, 0, wxDefaultValidator, wxT("cancel"));
+    this->SetTopWindow(dialog);
+    dialog->Show(true);
+    dialog->Resume();
+    dialog->SetEscapeId(ID_Cancel);
+    //Connect(ID_Cancel, wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(myApp::OnQuit));
+   // cancel->SetFocus();
+    std::thread tr1(myfunction);
+    //dialog->ShowModal();
     unsigned int temp = percent_glob;
     do {
         temp = percent_glob;
@@ -155,12 +196,18 @@ bool myApp ::OnInit() {
         wxString temp_wxstring(temp_string);
         // std::cout<< "\r"<<temp/*<<"\n"*/<<std::flush;
         dialog->Update(temp, temp_wxstring);
+        
     } while (temp != 100);
     dialog->Update(max);
     tr1.join();
-    delete dialog;
-
-    return true;
+    //dialog->Resume();
+    //dialog -> Destroy();
+    delete dialog;    
 }
+
+//void myApp::OnQuit(wxCommandEvent & WXUNUSED(event))
+//{
+//     dialog->Close();
+//}
 
 int myApp ::OnExit() { return 0; }
