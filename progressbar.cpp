@@ -178,7 +178,12 @@ bool myApp::OnInit() {
 }
 
 void myApp::Download(wxCommandEvent & WXUNUSED(event)){
-    //wxStaticText* staticText = new wxStaticText(panel, wxID_ANY, "Загрузка начата");
+    //wxString temp_text("Загрузка начата");
+    //wxStaticText* staticText = new wxStaticText(panel, wxID_ANY, wxPoint(80, 80), wxSize(100,20), 0, _("Загрузка начата"));
+    //wxStaticText* message = new wxStaticText(panel, wxID_ANY, _("Download started"), wxPoint(20, 110), style = wx.ALIGN_CENTER| wx.ST_NO_AUTORESIZE);
+    //message->Refresh();
+    wxTextCtrl *message = new wxTextCtrl (panel, wxID_ANY, "Download started", wxPoint(20, 100), wxSize(350, 30), wxTE_READONLY);
+    //wxStaticText* staticText =  new wxStaticText();
     //staticText->Show();
     stop_flag = false;
     std::string temp_str = std::string(text->GetValue());
@@ -207,7 +212,10 @@ void myApp::Download(wxCommandEvent & WXUNUSED(event)){
         if (dialog->WasCancelled()){
             stop_flag = true;
             tr1.join();
-            //staticText->SetLabelText("Загрузка прервана");
+            message->ChangeValue("Download interrupted");
+            //message->Refresh();
+            //message->SetLabel("Download interrupted");
+            //message->Layout();
             delete dialog;
             return;
         }	
@@ -224,7 +232,11 @@ void myApp::Download(wxCommandEvent & WXUNUSED(event)){
     //dialog->Resume();
     //dialog -> Destroy();
     //dialog->Resume ();
-    //staticText->SetLabelText("Загрузка завершена");
+    message->ChangeValue("Download has finished successfully");
+    //message->Refresh();
+    //message->SetLabel("Download has finished successfully");
+    //message->Layout();
+    
     delete dialog;    
 }
 
