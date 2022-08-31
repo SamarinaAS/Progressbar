@@ -62,7 +62,9 @@ static int xferinfo(void *p, curl_off_t dltotal, curl_off_t dlnow, curl_off_t ul
     //      }
     // std::cout << '\r' << dlnow/dltotal << std::flush;
 
-    if (dlnow > STOP_DOWNLOAD_AFTER_THIS_MANY_BYTES) return 1;
+    if (dlnow > STOP_DOWNLOAD_AFTER_THIS_MANY_BYTES||stop_flag){
+        return 1;
+    }
     return 0;
 }
 
@@ -131,6 +133,7 @@ class myApp : public wxApp {
     wxFrame *frame;
     wxProgressDialog *dialog;
     enum {ID_Download=wxID_HIGHEST + 1, ID_Cancel};
+    //wxStaticText* staticText;
 };
 
 IMPLEMENT_APP(myApp)
@@ -152,6 +155,7 @@ bool myApp::OnInit() {
     frame->Show(true);
     this->SetTopWindow(panel);
     panel->Show(true);
+    
     text=new wxTextCtrl(panel,-1,"https://media2.giphy.com/media/er7RmM5FjvHHajU8R2/giphy-downsized-large.gif",wxPoint(20,25),wxSize(350,20));
 
     
@@ -174,13 +178,16 @@ bool myApp::OnInit() {
 }
 
 void myApp::Download(wxCommandEvent & WXUNUSED(event)){
+    //wxStaticText* staticText = new wxStaticText(panel, wxID_ANY, "Загрузка начата");
+    //staticText->Show();
+    stop_flag = false;
     std::string temp_str = std::string(text->GetValue());
     str = temp_str.c_str();
     //const char* str = std::string(text->GetValue()).c_str();
     //strcpy(str, str_const);
     int i, max = 100;
     dialog = new wxProgressDialog(wxT("Wait: downloading"), wxT("percent: 0"),
-                                                    max, panel, wxPD_CAN_ABORT);
+                                                    max, panel, wxPD_CAN_ABORT | wxPD_AUTO_HIDE);
     //wxButton *cancel = new wxButton(dialog, ID_Cancel, wxT("Отменить"), wxPoint(120, 25),
     //                                wxDefaultSize, 0, wxDefaultValidator, wxT("cancel"));
     //this->SetTopWindow(dialog);
@@ -198,7 +205,9 @@ void myApp::Download(wxCommandEvent & WXUNUSED(event)){
     //temp = percent_glob;
     do {
         if (dialog->WasCancelled()){
+            stop_flag = true;
             tr1.join();
+            //staticText->SetLabelText("Загрузка прервана");
             delete dialog;
             return;
         }	
@@ -215,6 +224,7 @@ void myApp::Download(wxCommandEvent & WXUNUSED(event)){
     //dialog->Resume();
     //dialog -> Destroy();
     //dialog->Resume ();
+    //staticText->SetLabelText("Загрузка завершена");
     delete dialog;    
 }
 
