@@ -11,7 +11,6 @@
 #define STOP_DOWNLOAD_AFTER_THIS_MANY_BYTES 150000000
 const char* str = "https://99px.ru/sstorage/86/2017/11/image_862611170051343932802.gif";
 
-bool flag = false;
 bool stop_flag = false;
 std::atomic<unsigned int> percent_glob{0};
 struct myprogress {
@@ -19,17 +18,9 @@ struct myprogress {
     CURL *curl;
 };
 
-void print_percent(unsigned long dlnow, unsigned long dltotal) {
-    //  if (flag == false){
-    //    std::cout << "pid xferinfo: "<<std::this_thread::get_id() <<std::endl;
-    //    std::cout<<"persent: "<<std::endl;
-    //    flag = true;
-    //}
+void countPercent(unsigned long dlnow, unsigned long dltotal) {
     if ((unsigned long)dltotal != 0) {
         percent_glob = (unsigned int)((double)dlnow / dltotal * 100);
-        // std::cout<< "\r"<<percent_glob/*<<"\n"*/<<std::flush;
-        // fprintf(stderr, "\r %lu",
-        //      div);
     }
 }
 
@@ -43,25 +34,8 @@ static int xferinfo(void *p, curl_off_t dltotal, curl_off_t dlnow, curl_off_t ul
 
     if ((curtime - myp->lastruntime) >= MINIMAL_PROGRESS_FUNCTIONALITY_INTERVAL) {
         myp->lastruntime = curtime;
-        //    fprintf(stderr, "TOTAL TIME: %lu.%06lu\r\n",
-        //            (unsigned long)(curtime / 1000000),
-        //            (unsigned long)(curtime % 1000000));
     }
-
-    // fprintf(stderr, "UP: %lu of %lu  DOWN: %lu of %lu\r\n",
-    //        (unsigned long)ulnow, (unsigned long)ultotal,
-    //        (unsigned long)dlnow, (unsigned long)dltotal);
-    // std::this_thread::sleep_for(std::chrono::nanoseconds(700000000));
-    //std::cout<<percent_glob<<std::endl;
-    print_percent(dlnow, dltotal);
-    // if ((unsigned long) dltotal!=0){
-    // unsigned long div = (unsigned long)((double)dlnow/dltotal*100);
-    // std::cout<< "\r"<<div/*<<"\n"*/<<std::flush;
-    // fprintf(stderr, "\r %lu",
-    //      div);
-    //      }
-    // std::cout << '\r' << dlnow/dltotal << std::flush;
-
+    countPercent(dlnow, dltotal);
     if (dlnow > STOP_DOWNLOAD_AFTER_THIS_MANY_BYTES||stop_flag){
         return 1;
     }
@@ -80,9 +54,6 @@ void myfunction() {
         prog.lastruntime = 0;
         prog.curl = curl;
 
-        // curl_easy_setopt(curl, CURLOPT_URL, "https://example.com/");
-        //curl_easy_setopt(curl, CURLOPT_URL,
-        //    "https://media2.giphy.com/media/er7RmM5FjvHHajU8R2/giphy-downsized-large.gif");
         curl_easy_setopt(curl, CURLOPT_URL, str);
         curl_easy_setopt(curl, CURLOPT_XFERINFOFUNCTION, xferinfo);
         curl_easy_setopt(curl, CURLOPT_XFERINFODATA, &prog);
@@ -91,8 +62,6 @@ void myfunction() {
         pagefile = fopen(pagefilename, "wb");
         if (pagefile) {
             curl_easy_setopt(curl, CURLOPT_WRITEDATA, pagefile);
-            // curl_easy_setopt(curl, CURLOPT_MAX_RECV_SPEED_LARGE, (curl_off_t)100000);
-            // std::cout<<"persent:"<<std::endl;
             res = curl_easy_perform(curl);
             std::cout << "\n";
             if (res != CURLE_OK) fprintf(stderr, "%s\n", curl_easy_strerror(res));
@@ -100,27 +69,8 @@ void myfunction() {
             fclose(pagefile);
         }
         curl_easy_cleanup(curl);
-        // std::cout << "pid myfunction: "<< std::this_thread::get_id() <<std::endl;
     }
-    // return (int)res;
 }
-
-// int main(void)
-//{
-//  //std::cout << "pid main: "<< std::this_thread::get_id() <<std::endl;
-//  std::thread tr1 (myfunction);
-//  std::cout<<"percent: "<<std::endl;
-// while (percent_glob !=100){
-//    std::cout<< "\r"<<percent_glob/*<<"\n"*/<<std::flush;
-//}
-//  unsigned int temp = percent_glob;
-//  do{
-//    temp = percent_glob;
-//    std::cout<< "\r"<<temp/*<<"\n"*/<<std::flush;
-//  }while(temp !=100);
-//  tr1.join();
-//  return 0;
-//}
 
 class myApp : public wxApp {
    public:
@@ -133,23 +83,12 @@ class myApp : public wxApp {
     wxFrame *frame;
     wxProgressDialog *dialog;
     enum {ID_Download=wxID_HIGHEST + 1, ID_Cancel};
-    //wxStaticText* staticText;
 };
 
 IMPLEMENT_APP(myApp)
 
 bool myApp::OnInit() {
-    
-    // std::cout << "pid main: "<< std::this_thread::get_id() <<std::endl;
-    
-    // std::cout<<"percent: "<<std::endl;
-    // while (percent_glob !=100){
-    //    std::cout<< "\r"<<percent_glob/*<<"\n"*/<<std::flush;
-    //}
-
-    //wxFrame* frame = new wxFrame(NULL, wxID_ANY, wxT("Loader"));
     frame = new wxFrame(NULL, wxID_ANY, wxT("Loader"));
-    //frame=new wxFrame(0,-1,"wxTextEntryDialog",wxPoint(10,10),wxSize(320,200),wxCAPTION | wxSYSTEM_MENU);
     panel=new wxPanel(frame,-1);
     this->SetTopWindow(frame);
     frame->Show(true);
@@ -158,91 +97,43 @@ bool myApp::OnInit() {
     
     text=new wxTextCtrl(panel,-1,"https://media2.giphy.com/media/er7RmM5FjvHHajU8R2/giphy-downsized-large.gif",wxPoint(20,25),wxSize(350,30));
 
-    
-    //wxButton *download = new wxButton(frame, ID_Download, wxT("Загрузить"), wxPoint(20, 25),
-    //                               wxSize(10,2), 0, wxDefaultValidator, wxT("download"));
     wxButton *download = new wxButton(panel, ID_Download, wxT("Загрузить"), wxPoint(20, 60));
     Connect(ID_Download, wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(myApp::Download));
     download->SetFocus();
-    //wxButton *download = new wxButton(frame, wxID_HIGHEST + 2, wxT("Загрузить"), wxPoint(120, 25),
-    //                                wxSize(10,2), 0, wxDefaultValidator, wxT("download"));
-                                    
-    // dialog->AddMainButtonId(wxID_HIGHEST + 1);
-    // for(int i = 0; i < max; i++){
-    //   wxMilliSleep(500); //here are computations
-    //   if(i%23) dialog->Update(i);
-    //}
-    
-
     return true;
 }
 
 void myApp::Download(wxCommandEvent & WXUNUSED(event)){
-    //wxString temp_text("Загрузка начата");
-    //wxStaticText* staticText = new wxStaticText(panel, wxID_ANY, wxPoint(80, 80), wxSize(100,20), 0, _("Загрузка начата"));
-    //wxStaticText* message = new wxStaticText(panel, wxID_ANY, _("Download started"), wxPoint(20, 110), style = wx.ALIGN_CENTER| wx.ST_NO_AUTORESIZE);
-    //message->Refresh();
     wxTextCtrl *message = new wxTextCtrl (panel, wxID_ANY, "Download started", wxPoint(20, 100), wxSize(350, 30), wxTE_READONLY);
-    //wxStaticText* staticText =  new wxStaticText();
-    //staticText->Show();
     stop_flag = false;
     std::string temp_str = std::string(text->GetValue());
     str = temp_str.c_str();
-    //const char* str = std::string(text->GetValue()).c_str();
-    //strcpy(str, str_const);
     int i, max = 100;
     dialog = new wxProgressDialog(wxT("Wait: downloading"), wxT("percent: 0"),
                                                     max, panel, wxPD_CAN_ABORT | wxPD_AUTO_HIDE);
-    //wxButton *cancel = new wxButton(dialog, ID_Cancel, wxT("Отменить"), wxPoint(120, 25),
-    //                                wxDefaultSize, 0, wxDefaultValidator, wxT("cancel"));
-    //this->SetTopWindow(dialog);
-   // dialog->Show(true);
-    //dialog->Resume();
     dialog->SetEscapeId(wxPD_CAN_ABORT);
-    //Connect(ID_Cancel, wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(myApp::OnQuit));
-   // cancel->SetFocus();
     std::thread tr1(myfunction);
-    //dialog->ShowModal();
-    //std::cout<<percent_glob<<std::endl;
     dialog->Update(0, "0");
     percent_glob = 0;
     unsigned int temp = 0;
-    //temp = percent_glob;
     do {
         if (dialog->WasCancelled()){
             stop_flag = true;
             tr1.join();
             message->ChangeValue("Download interrupted");
-            //message->Refresh();
-            //message->SetLabel("Download interrupted");
-            //message->Layout();
             delete dialog;
             return;
         }	
         temp = percent_glob;
-        //std::cout<<percent_glob<<std::endl;
         std::string temp_string = std::to_string(percent_glob) + " %";
         wxString temp_wxstring(temp_string);
-        // std::cout<< "\r"<<temp/*<<"\n"*/<<std::flush;
         dialog->Update(temp, temp_wxstring);
         
     } while (temp != 100);
     dialog->Update(max);
     tr1.join();
-    //dialog->Resume();
-    //dialog -> Destroy();
-    //dialog->Resume ();
     message->ChangeValue("Download has finished successfully");
-    //message->Refresh();
-    //message->SetLabel("Download has finished successfully");
-    //message->Layout();
-    
     delete dialog;    
 }
-
-//void myApp::OnQuit(wxCommandEvent & WXUNUSED(event))
-//{
-//     dialog->Close();
-//}
 
 int myApp ::OnExit() { return 0; }
